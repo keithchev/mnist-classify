@@ -51,15 +51,15 @@ import numpy as np
 import pandas as pd
 
 import scipy as sp
-import scipy.misc as spmisc
 from scipy import ndimage
+import scipy.misc as spmisc
 
-import keras
 from keras.models import Sequential
+from keras.optimizers import Adam
 from keras.layers import Dense, Dropout, Flatten
 from keras.layers import Convolution2D, MaxPooling2D
 
-def loadKaggle(fname):
+def load_kaggle(fname):
     ''' Load training images from Kaggle CSV, re-saved as HDF5
     This is an Nx28x28 stack of digit images (N = 42000) '''
     
@@ -77,7 +77,7 @@ def loadKaggle(fname):
     return x, y
 
 
-def loadKaggleTest(fname):
+def load_kaggle_test(fname):
     ''' Load test data for Kaggle '''
     
     data = pd.read_hdf(fname, 'table')  
@@ -88,7 +88,7 @@ def loadKaggleTest(fname):
     return data
 
 
-def loadModel():
+def load_model():
     ''' Load the CNN we're going to use - inspired by Keras' mnist_cnn example'''
     
     # number of output classes 
@@ -119,12 +119,12 @@ def loadModel():
     model.add(Dense(num_classes, activation='softmax'))
 
     # (adam is faster than adadelta here)
-    model.compile(loss='categorical_crossentropy', optimizer=keras.optimizers.Adam(), metrics=['accuracy'])
+    model.compile(loss='categorical_crossentropy', optimizer=Adam(), metrics=['accuracy'])
 
     return model
 
 
-def runModel(x, y, x_validate, y_validate, model, x_predict=[], batch_size=128, epochs=1, distortFlag=False):
+def run_model(x, y, x_validate, y_validate, model, x_predict=[], batch_size=128, epochs=1, distort_flag=False):
     ''' Train the CNN (with or without affine transformations) '''
     
     num_classes = 10
@@ -134,7 +134,7 @@ def runModel(x, y, x_validate, y_validate, model, x_predict=[], batch_size=128, 
     y_validate  = to_categorical(y_validate, num_classes)
 
     # randomly affine-distort the training set
-    if distortFlag:
+    if distort_flag:
         x = randomAffine(x)
 
     model.fit(x, y, 
@@ -150,13 +150,13 @@ def runModel(x, y, x_validate, y_validate, model, x_predict=[], batch_size=128, 
     print('Test accuracy:', score[1])
 
     if len(x_predict):
-        yp = makePredictions(x_predict, model)
-        savePredictions(yp, './data/mnist_v3_acc%s.csv' % score[1])
+        yp = make_predictions(x_predict, model)
+        save_predictions(yp, './data/mnist_v3_acc%s.csv' % score[1])
 
     return model
 
 
-def makePredictions(x, model):
+def make_predictions(x, model):
     ''' Predict classes given images and model. '''
     
     yp = model.predict(x)
@@ -167,7 +167,7 @@ def makePredictions(x, model):
     return yp
 
 
-def savePredictions(yp, fname):
+def save_predictions(yp, fname):
     ''' Save predictions in appropriate format to upload to kaggle '''
     
     ytestd = np.array([np.arange(1,len(yp)+1), yp]).transpose()
@@ -175,27 +175,27 @@ def savePredictions(yp, fname):
     ytestd.to_csv(fname, index=False)
 
 
-def randomAffine(x):
+def random_affine(x):
     ''' Apply a random translation+rotation+scale to each image in x.
     This is used to generate 'new' training data at each epoch '''
     
     # placeholder array for distorted images
     x_ = 0*x
 
-    shiftRange = [-3, 3]
-    thetaRange = [-10, 10]
-    scaleRange = [.8, 1.2]
+    shift_range = [-3, 3]
+    theta_range = [-10, 10]
+    scale_range = [.8, 1.2]
 
-    reshapeFlag = len(x.shape)==2
+    reshape_flag = len(x.shape)==2
     
     for ind in np.arange(0, x.shape[0]):
 
         # pick a random shift, rotation, and scale
-        shift = np.random.rand(2) * (np.max(shiftRange) - np.min(shiftRange)) + shiftRange[0]
-        theta = np.random.rand() * (np.max(thetaRange) - np.min(thetaRange)) + thetaRange[0]
-        scale = np.random.rand() * (np.max(scaleRange) - np.min(scaleRange)) + scaleRange[0]
+        shift = np.random.rand(2) * (np.max(shift_range) - np.min(shift_range)) + shift_range[0]
+        theta = np.random.rand() * (np.max(theta_range) - np.min(theta_range)) + theta_range[0]
+        scale = np.random.rand() * (np.max(scale_range) - np.min(scale_range)) + scale_range[0]
 
-        if reshapeFlag:
+        if reshape_flag:
             im = x[ind, :].reshape((28,28))
         else:
             im = x[ind, :, :, 0]
@@ -216,7 +216,7 @@ def randomAffine(x):
         # translation 
         im = ndimage.shift(im, (shift[0], shift[1]), order=0)
         
-        if reshapeFlag:
+        if reshape_flag:
             x_[ind, :] = im.flatten()
         else:
             x_[ind, :, :, 0] = im
